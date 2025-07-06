@@ -13,6 +13,14 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        message: 'FPL Proxy server is running'
+    });
+});
+
 app.all('/api/*', async (req, res) => {
     try {
         const apiPath = req.path.substring(4);
@@ -143,14 +151,6 @@ app.all('/proxy', async (req, res) => {
             message: error.message
         });
     }
-});
-
-app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        message: 'FPL Proxy server is running'
-    });
 });
 
 app.get('/', (req, res) => {
