@@ -1,0 +1,27 @@
+{
+  "name": "fpl-proxy",
+  "version": "1.0.0",
+  "description": "CORS proxy server for Anton's Fantasy Football app to access FPL API",
+  "main": "api/proxy.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step needed'",
+    "start": "node api/proxy.js"
+  },
+  "keywords": [
+    "proxy",
+    "cors",
+    "fpl",
+    "vercel",
+    "angular"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
