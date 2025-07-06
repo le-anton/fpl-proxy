@@ -25,6 +25,7 @@ app.all('/api/*', async (req, res) => {
             'User-Agent': 'Mozilla/5.0 (compatible; FPL-Proxy/1.0)',
             'Accept': req.headers.accept || 'application/json',
             'Accept-Language': req.headers['accept-language'] || 'en-US,en;q=0.9',
+            'Accept-Encoding': 'identity',
         };
 
         const skipHeaders = ['host', 'connection', 'origin', 'referer', 'x-forwarded-for', 'x-forwarded-proto'];
