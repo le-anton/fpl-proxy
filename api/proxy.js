@@ -13,15 +13,15 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        message: 'FPL Proxy server is running'
-    });
-});
-
 app.all('/api/*', async (req, res) => {
+    if (req.path === '/api/health') {
+        return res.json({
+            status: 'ok',
+            timestamp: new Date().toISOString(),
+            message: 'FPL Proxy server is running'
+        });
+    }
+    
     try {
         const apiPath = req.path.substring(4);
         const queryString = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
@@ -29,63 +29,37 @@ app.all('/api/*', async (req, res) => {
 
         console.log(`Proxying: ${req.method} ${req.originalUrl} -> ${targetUrl}`);
 
-        const headers = {
-            'User-Agent': 'Mozilla/5.0 (compatible; FPL-Proxy/1.0)',
-            'Accept': req.headers.accept || 'application/json',
-            'Accept-Language': req.headers['accept-language'] || 'en-US,en;q=0.9',
-            'Accept-Encoding': 'identity',
-        };
-
-        const skipHeaders = ['host', 'connection', 'origin', 'referer', 'x-forwarded-for', 'x-forwarded-proto'];
-        Object.keys(req.headers).forEach(header => {
-            if (!skipHeaders.includes(header.toLowerCase()) && !header.startsWith('x-vercel')) {
-                headers[header] = req.headers[header];
+        const response = await fetch(targetUrl, {
+            method: 'GET',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; FPL-Proxy/1.0)',
+                'Accept': 'application/json',
+                'Accept-Encoding': 'gzip, deflate, br',
             }
         });
 
-        let body = undefined;
-        if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
-            if (typeof req.body === 'object') {
-                body = JSON.stringify(req.body);
-                headers['content-type'] = 'application/json';
-            } else {
-                body = req.body;
-            }
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const response = await fetch(targetUrl, {
-            method: req.method,
-            headers: headers,
-            body: body
-        });
-
+        // Set response status and important headers
         res.status(response.status);
-
-        const headersToProxy = [
-            'content-type',
-            'cache-control',
-            'expires',
-            'last-modified',
-            'etag',
-            'content-length',
-            'content-encoding'
-        ];
-
-        headersToProxy.forEach(header => {
-            const value = response.headers.get(header);
-            if (value) {
-                res.set(header, value);
-            }
-        });
-
+        
+        // Copy content-type header
         const contentType = response.headers.get('content-type');
+        if (contentType) {
+            res.set('content-type', contentType);
+        }
 
-        if (contentType && contentType.includes('application/json')) {
-            const jsonData = await response.json();
-            res.json(jsonData);
-        } else {
-            const data = await response.text();
-            res.send(data);
+        // Get the response as text first, then parse
+        const responseText = await response.text();
+        
+        try {
+            const data = JSON.parse(responseText);
+            res.json(data);
+        } catch (parseError) {
+            // If JSON parsing fails, send as text
+            res.send(responseText);
         }
 
     } catch (error) {
